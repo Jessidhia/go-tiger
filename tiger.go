@@ -12,7 +12,7 @@ import (
 type tiger struct {
 	padding byte // 0x01 on Tiger, 0x80 on Tiger2
 
-	a, b, c uint64
+	state [3]uint64
 
 	// size of digest
 	sz uint64
@@ -52,9 +52,11 @@ func (t *tiger) Size() int {
 
 func (t *tiger) Reset() {
 	t.buf = nil
-	t.a = 0x0123456789ABCDEF
-	t.b = 0xFEDCBA9876543210
-	t.c = 0xF096A5B4C3B2E187
+	t.state = [3]uint64{
+		0x0123456789ABCDEF,
+		0xFEDCBA9876543210,
+		0xF096A5B4C3B2E187,
+	}
 	t.sz = 0
 }
 
@@ -97,8 +99,8 @@ func (t *tiger) Sum(b []byte) []byte {
 	// I swear I'm not sure if this is *really* supposed to be LittleEndian or BigEndian
 	// LittleEndian matches the test vectors though so...
 	buf := bytes.NewBuffer(make([]byte, 0, Size))
-	binary.Write(buf, binary.LittleEndian, s.a)
-	binary.Write(buf, binary.LittleEndian, s.b)
-	binary.Write(buf, binary.LittleEndian, s.c)
+	binary.Write(buf, binary.LittleEndian, s.state[0])
+	binary.Write(buf, binary.LittleEndian, s.state[1])
+	binary.Write(buf, binary.LittleEndian, s.state[2])
 	return append(b, buf.Bytes()...)
 }
