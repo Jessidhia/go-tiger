@@ -1,9 +1,13 @@
 package tiger
 
 import (
+	"bytes"
+	"encoding/binary"
 	"unsafe"
 )
 
+// uses unsafe for fast conversion from []byte to []uint64
+// Overall benchmark time 104.62 MB/s
 func (t *tiger) readFrom(buf []byte) []byte {
 	for len(buf) >= BlockSize {
 		// Pun the byte slice into an uint64 slice
@@ -21,4 +25,19 @@ func (t *tiger) readFrom(buf []byte) []byte {
 		t.tigerBlock(x)
 	}
 	return buf
+}
+
+// encoding/binary version of the above
+// Overall benchmark time 38.09 MB/s
+func (t *tiger) readFrom_binary(b []byte) []byte {
+	buf := bytes.NewBuffer(b)
+	for buf.Len() >= BlockSize {
+		x := [8]uint64{}
+
+		// NOTE: Ideally, this would be bytes.NativeEndian, but we don't have that.
+		// All supported platforms are LE (...and ARM) so this works out fine.
+		binary.Read(buf, binary.LittleEndian, x[:])
+		t.tigerBlock(x)
+	}
+	return buf.Bytes()
 }
